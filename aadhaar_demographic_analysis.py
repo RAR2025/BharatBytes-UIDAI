@@ -17,7 +17,7 @@ print("\n" + "="*80)
 print("AADHAAR DEMOGRAPHIC DATA ANALYSIS")
 print("="*80)
 
-CSV_FOLDER = r"c:\Users\RUTURAJ\D_Drive\Desktop\Coding\AAdhar hackathon\BharatBytes-UIDAI\api_data_aadhar_demographic"
+CSV_FOLDER = r"api_data_aadhar_demographic"
 CSV_FILES = [
     "api_data_aadhar_demographic_0_500000.csv",
     "api_data_aadhar_demographic_500000_1000000.csv",

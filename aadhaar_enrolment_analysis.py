@@ -21,7 +21,7 @@ print("SECTION 1: DATA LOADING AND CONSOLIDATION")
 print("="*80)
 
 # Define file paths
-csv_folder = r"c:\Users\RUTURAJ\D_Drive\Desktop\Coding\AAdhar hackathon\api_data_aadhar_enrolment"
+csv_folder = r"api_data_aadhar_enrolment"
 csv_files = [
     "api_data_aadhar_enrolment_0_500000.csv",
     "api_data_aadhar_enrolment_500000_1000000.csv",
