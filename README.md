@@ -16,6 +16,8 @@ pip install -r requirements.txt
 ## Run the analysis script (optional)
 ```
 python aadhaar_enrolment_analysis.py
+python aadhaar_demographic_analysis.py
+python aadhaar_demographic_analysis.py
 ```
 
 ## Launch the Streamlit dashboard
