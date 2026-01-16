@@ -409,9 +409,10 @@ with st.sidebar:
     
     # Initialize session state for page
     if 'current_page' not in st.session_state:
-        st.session_state.current_page = "Executive Summary"
+        st.session_state.current_page = "Overview"
     
     nav_items = [
+        ("📌", "Overview"),
         ("🏠", "Executive Summary"),
         ("📋", "Detailed Analysis"),
         ("🔮", "Predictive"),
@@ -495,10 +496,158 @@ def show_filter_indicator():
         """, unsafe_allow_html=True)
 
 # ================================================================================
+# PAGE: OVERVIEW
+# ================================================================================
+
+if page == "Overview":
+    # Team Header
+    st.markdown("""
+    <div style="
+        background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 50%, #db2777 100%);
+        border-radius: 16px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        text-align: center;
+        color: white;
+    ">
+        <p style="font-size: 0.9rem; letter-spacing: 2px; margin: 0 0 0.5rem 0; opacity: 0.9;">
+            UIDAI DATA HACKATHON 2026
+        </p>
+        <h1 style="font-size: 2.75rem; font-weight: 800; margin: 0 0 0.5rem 0; letter-spacing: -1px;">
+            Aadhaar Analytics Platform
+        </h1>
+        <p style="font-size: 1.1rem; margin: 0 0 1.5rem 0; opacity: 0.9;">
+            Turning Aadhaar Data Into Actionable Intelligence for India
+        </p>
+        <div style="
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            border-radius: 30px;
+            padding: 0.5rem 1.5rem;
+        ">
+            <span style="font-size: 1rem; font-weight: 600;">Built by Team Bharat Bytes 🇮🇳</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # What is this platform?
+    st.markdown("""
+    ## 🤔 What is this Platform?
+    
+    This is an **analytics platform** that helps UIDAI (the organization behind Aadhaar) understand:
+    
+    - **How many people are enrolling** for Aadhaar across India
+    - **How people are using** their Aadhaar (biometric authentication)
+    - **Where the gaps are** between enrollment and actual usage
+    - **Whether policy campaigns** are actually working
+    
+    Think of it as a **health dashboard for India's Aadhaar system** — showing what's working, what's not, and where attention is needed.
+    
+    ---
+    """)
+    
+    # Modules Overview
+    st.markdown("## 📱 What Can You Explore?")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid #22c55e;">
+            <h3 style="color: #166534; margin: 0 0 0.5rem 0;">🏠 Executive Summary</h3>
+            <p style="color: #15803d; margin: 0; font-size: 0.9rem;">
+                Quick overview of key numbers — total enrollments, biometric usage, and trends at a glance.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid #3b82f6;">
+            <h3 style="color: #1e40af; margin: 0 0 0.5rem 0;">📋 Detailed Analysis</h3>
+            <p style="color: #1d4ed8; margin: 0; font-size: 0.9rem;">
+                Deep dive into biometric vs demographic data, geographic distribution, and age cohorts.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid #a855f7;">
+            <h3 style="color: #6b21a8; margin: 0 0 0.5rem 0;">🔮 Predictive Analytics</h3>
+            <p style="color: #7e22ce; margin: 0; font-size: 0.9rem;">
+                AI-powered predictions for future enrollment trends using machine learning models.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid #f59e0b;">
+            <h3 style="color: #92400e; margin: 0 0 0.5rem 0;">🔍 Data Explorer</h3>
+            <p style="color: #b45309; margin: 0; font-size: 0.9rem;">
+                Interactive tables to browse raw data, detect anomalies, and explore district-level details.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid #ec4899;">
+            <h3 style="color: #9d174d; margin: 0 0 0.5rem 0;">⚖️ EUMI Analysis</h3>
+            <p style="color: #be185d; margin: 0; font-size: 0.9rem;">
+                Enrollment-Usage Mismatch Index — find districts with high enrollment but low usage (or vice versa).
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid #ef4444;">
+            <h3 style="color: #991b1b; margin: 0 0 0.5rem 0;">📉 Policy Shock Analyzer</h3>
+            <p style="color: #dc2626; margin: 0; font-size: 0.9rem;">
+                Did a policy drive actually create lasting change? Measure before vs after impact of enrollment campaigns.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # How to Use
+    st.markdown("""
+    ## 🚀 How to Use This Platform
+    
+    1. **Select a page** from the navigation menu on the left
+    2. **Filter by state** using the dropdown in the sidebar (optional)
+    3. **Explore the visualizations** — hover for details, click to interact
+    4. **Read the insights** — each chart has a dynamic explanation below it
+    
+    > 💡 **Tip:** Start with the **Executive Summary** for a quick overview, then dive into specific modules based on your interests!
+    
+    ---
+    """)
+    
+    # Team Credits
+    st.markdown("""
+    <div style="
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+    ">
+        <p style="font-size: 0.85rem; color: #64748b; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 1px;">
+            Developed with ❤️ by
+        </p>
+        <h2 style="font-size: 1.75rem; font-weight: 700; color: #1e293b; margin: 0 0 1rem 0;">
+            Team Bharat Bytes
+        </h2>
+        <p style="font-size: 0.9rem; color: #475569; margin: 0;">
+            UIDAI Data Hackathon 2026 | Powered by Python, Streamlit & Plotly
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ================================================================================
 # PAGE: EXECUTIVE SUMMARY
 # ================================================================================
 
-if page == "Executive Summary":
+elif page == "Executive Summary":
     st.markdown("""
     <h1 class="main-title">UIDAI Aadhaar Analytics Platform</h1>
     <p class="sub-title">Comprehensive Intelligence Dashboard for India's Digital Identity Infrastructure</p>
