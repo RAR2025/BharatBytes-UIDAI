@@ -11,30 +11,17 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # -----------------------------------------------------------------------------
-# 1) LOAD AND CONSOLIDATE
+# 1) LOAD CONSOLIDATED DATA
 # -----------------------------------------------------------------------------
 print("\n" + "="*80)
 print("AADHAAR DEMOGRAPHIC DATA ANALYSIS")
 print("="*80)
 
-CSV_FOLDER = r"api_data_aadhar_demographic"
-CSV_FILES = [
-    "api_data_aadhar_demographic_0_500000.csv",
-    "api_data_aadhar_demographic_500000_1000000.csv",
-    "api_data_aadhar_demographic_1000000_1500000.csv",
-    "api_data_aadhar_demographic_1500000_2000000.csv",
-    "api_data_aadhar_demographic_2000000_2071700.csv",
-]
+CSV_FILE = r"filtered_data/consolidated_demographic.csv"
 
-dfs = []
-for fname in CSV_FILES:
-    fpath = os.path.join(CSV_FOLDER, fname)
-    df = pd.read_csv(fpath)
-    dfs.append(df)
-    print(f"Loaded {fname}: {df.shape[0]:,} rows, {df.shape[1]} cols")
-
-# Combine shards
-raw = pd.concat(dfs, ignore_index=True)
+print(f"Loading consolidated demographic data...")
+raw = pd.read_csv(CSV_FILE)
+print(f"Loaded consolidated_demographic.csv: {raw.shape[0]:,} rows, {raw.shape[1]} cols")
 
 # Normalize types
 raw["date"] = pd.to_datetime(raw["date"], format="%d-%m-%Y")

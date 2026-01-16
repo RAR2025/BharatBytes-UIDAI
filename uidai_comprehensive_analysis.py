@@ -136,65 +136,35 @@ def load_and_clean_data():
     print("SECTION 1: DATA INGESTION & CLEANING")
     print("=" * 80)
     
-    # Define data directories (CSV folders are in the same directory as this script)
+    # Define data paths (consolidated files in filtered_data folder)
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    demo_dir = os.path.join(base_dir, "api_data_aadhar_demographic")
-    enrol_dir = os.path.join(base_dir, "api_data_aadhar_enrolment")
-    bio_dir = os.path.join(base_dir, "api_data_aadhar_biometric")
+    filtered_dir = os.path.join(base_dir, "filtered_data")
     
     # Load Demographic Data
     print("\n📊 Loading DEMOGRAPHIC data...")
-    df_demo = _load_csv_chunks(demo_dir, "demographic")
+    demo_path = os.path.join(filtered_dir, "consolidated_demographic.csv")
+    df_demo = pd.read_csv(demo_path)
     df_demo = _clean_dataframe(df_demo, "demographic")
+    print(f"  ✓ Loaded: consolidated_demographic.csv ({df_demo.shape[0]:,} rows)")
     
     # Load Enrolment Data
     print("\n📊 Loading ENROLMENT data...")
-    df_enrol = _load_csv_chunks(enrol_dir, "enrolment")
+    enrol_path = os.path.join(filtered_dir, "consolidated_enrolment.csv")
+    df_enrol = pd.read_csv(enrol_path)
     df_enrol = _clean_dataframe(df_enrol, "enrolment")
+    print(f"  ✓ Loaded: consolidated_enrolment.csv ({df_enrol.shape[0]:,} rows)")
     
     # Load Biometric Data
     print("\n📊 Loading BIOMETRIC data...")
-    df_bio = _load_csv_chunks(bio_dir, "biometric")
+    bio_path = os.path.join(filtered_dir, "consolidated_biometric.csv")
+    df_bio = pd.read_csv(bio_path)
     df_bio = _clean_dataframe(df_bio, "biometric")
+    print(f"  ✓ Loaded: consolidated_biometric.csv ({df_bio.shape[0]:,} rows)")
     
     # Print summary statistics
     _print_data_summary(df_demo, df_enrol, df_bio)
     
     return df_demo, df_enrol, df_bio
-
-
-def _load_csv_chunks(directory, data_type):
-    """
-    Load all CSV files from a directory and concatenate them.
-    
-    Args:
-        directory: Path to directory containing CSV files
-        data_type: Type of data for logging purposes
-    
-    Returns:
-        pd.DataFrame: Concatenated dataframe
-    """
-    dataframes = []
-    
-    if not os.path.exists(directory):
-        print(f"  ⚠️ Warning: Directory not found: {directory}")
-        return pd.DataFrame()
-    
-    csv_files = sorted([f for f in os.listdir(directory) if f.endswith('.csv')])
-    
-    for csv_file in csv_files:
-        filepath = os.path.join(directory, csv_file)
-        df = pd.read_csv(filepath)
-        dataframes.append(df)
-        print(f"  ✓ Loaded: {csv_file} ({df.shape[0]:,} rows)")
-    
-    if dataframes:
-        combined = pd.concat(dataframes, ignore_index=True)
-        print(f"  📦 Combined: {combined.shape[0]:,} total rows")
-        return combined
-    
-    return pd.DataFrame()
 
 
 def _clean_dataframe(df, data_type):

@@ -378,50 +378,36 @@ st.markdown("""
 
 @st.cache_data(ttl=3600)
 def load_all_data():
-    """Load all three datasets: demographic, enrolment, biometric"""
-    # CSV folders are in the same directory as this script
+    """Load all three datasets from consolidated filtered data"""
+    # Consolidated files are in the filtered_data folder
     base_dir = os.path.dirname(os.path.abspath(__file__))
+    filtered_dir = os.path.join(base_dir, "filtered_data")
     
     datasets = {}
     
     # Load Enrolment Data
-    enrol_dir = os.path.join(base_dir, "api_data_aadhar_enrolment")
-    if os.path.exists(enrol_dir):
-        dfs = []
-        for f in sorted(os.listdir(enrol_dir)):
-            if f.endswith('.csv'):
-                dfs.append(pd.read_csv(os.path.join(enrol_dir, f)))
-        if dfs:
-            df = pd.concat(dfs, ignore_index=True)
-            df['date'] = pd.to_datetime(df['date'], format='%d-%m-%Y')
-            df['total_enrolment'] = df['age_0_5'] + df['age_5_17'] + df['age_18_greater']
-            datasets['enrolment'] = df
+    enrol_path = os.path.join(filtered_dir, "consolidated_enrolment.csv")
+    if os.path.exists(enrol_path):
+        df = pd.read_csv(enrol_path)
+        df['date'] = pd.to_datetime(df['date'], format='%d-%m-%Y')
+        df['total_enrolment'] = df['age_0_5'] + df['age_5_17'] + df['age_18_greater']
+        datasets['enrolment'] = df
     
     # Load Demographic Data
-    demo_dir = os.path.join(base_dir, "api_data_aadhar_demographic")
-    if os.path.exists(demo_dir):
-        dfs = []
-        for f in sorted(os.listdir(demo_dir)):
-            if f.endswith('.csv'):
-                dfs.append(pd.read_csv(os.path.join(demo_dir, f)))
-        if dfs:
-            df = pd.concat(dfs, ignore_index=True)
-            df['date'] = pd.to_datetime(df['date'], format='%d-%m-%Y')
-            df['total_demo'] = df['demo_age_5_17'] + df['demo_age_17_']
-            datasets['demographic'] = df
+    demo_path = os.path.join(filtered_dir, "consolidated_demographic.csv")
+    if os.path.exists(demo_path):
+        df = pd.read_csv(demo_path)
+        df['date'] = pd.to_datetime(df['date'], format='%d-%m-%Y')
+        df['total_demo'] = df['demo_age_5_17'] + df['demo_age_17_']
+        datasets['demographic'] = df
     
     # Load Biometric Data
-    bio_dir = os.path.join(base_dir, "api_data_aadhar_biometric")
-    if os.path.exists(bio_dir):
-        dfs = []
-        for f in sorted(os.listdir(bio_dir)):
-            if f.endswith('.csv'):
-                dfs.append(pd.read_csv(os.path.join(bio_dir, f)))
-        if dfs:
-            df = pd.concat(dfs, ignore_index=True)
-            df['date'] = pd.to_datetime(df['date'], format='%d-%m-%Y')
-            df['total_bio'] = df['bio_age_5_17'] + df['bio_age_17_']
-            datasets['biometric'] = df
+    bio_path = os.path.join(filtered_dir, "consolidated_biometric.csv")
+    if os.path.exists(bio_path):
+        df = pd.read_csv(bio_path)
+        df['date'] = pd.to_datetime(df['date'], format='%d-%m-%Y')
+        df['total_bio'] = df['bio_age_5_17'] + df['bio_age_17_']
+        datasets['biometric'] = df
     
     return datasets
 

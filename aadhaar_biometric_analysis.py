@@ -14,32 +14,19 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ================================================================================
-# SECTION 1: LOAD AND CONSOLIDATE DATA FROM ALL FOUR CSV FILES
+# SECTION 1: LOAD CONSOLIDATED DATA FROM FILTERED DATA
 # ================================================================================
 print("\n" + "="*80)
-print("SECTION 1: DATA LOADING AND CONSOLIDATION")
+print("SECTION 1: DATA LOADING")
 print("="*80)
 
-# Define file paths
-csv_folder = r"api_data_aadhar_biometric"
-csv_files = [
-    "api_data_aadhar_biometric_0_500000.csv",
-    "api_data_aadhar_biometric_500000_1000000.csv",
-    "api_data_aadhar_biometric_1000000_1500000.csv",
-    "api_data_aadhar_biometric_1500000_1861108.csv"
-]
+# Define file path
+csv_file = r"filtered_data/consolidated_biometric.csv"
 
-# Load all CSVs into a list
-dataframes = []
-for file in csv_files:
-    filepath = os.path.join(csv_folder, file)
-    df = pd.read_csv(filepath)
-    dataframes.append(df)
-    print(f"\n✓ Loaded: {file}")
-    print(f"  Shape: {df.shape[0]:,} rows × {df.shape[1]} columns")
-
-# Concatenate all dataframes
-df_full = pd.concat(dataframes, ignore_index=True)
+# Load consolidated CSV
+print(f"\n✓ Loading consolidated biometric data...")
+df_full = pd.read_csv(csv_file)
+print(f"  Shape: {df_full.shape[0]:,} rows × {df_full.shape[1]} columns")
 print(f"\n{'='*80}")
 print(f"CONSOLIDATED DATA:")
 print(f"  Total rows: {df_full.shape[0]:,}")
