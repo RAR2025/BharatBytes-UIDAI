@@ -415,7 +415,8 @@ with st.sidebar:
         ("🏠", "Executive Summary"),
         ("📋", "Detailed Analysis"),
         ("🔮", "Predictive"),
-        ("🔍", "Data Explorer")
+        ("🔍", "Data Explorer"),
+        ("⚖️", "EUMI Analysis")
     ]
     
     for icon, name in nav_items:
@@ -1238,6 +1239,413 @@ elif page == "Data Explorer":
             st.dataframe(df_demo.head(200), use_container_width=True)
         elif dataset == "Biometric" and not df_bio.empty:
             st.dataframe(df_bio.head(200), use_container_width=True)
+
+# ================================================================================
+# PAGE: EUMI ANALYSIS
+# ================================================================================
+
+elif page == "EUMI Analysis":
+    # Modern EUMI Dashboard Header
+    st.markdown("""
+    <div style="margin-bottom: 2.5rem;">
+        <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e; margin: 0 0 0.5rem 0; letter-spacing: -0.5px;">
+            Enrollment–Usage Mismatch Index
+        </h1>
+        <p style="font-size: 1rem; color: #6c757d; margin: 0; font-weight: 400;">
+            Analyze district-level enrollment and biometric usage patterns
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    show_filter_indicator()
+    
+    # Load and compute EUMI data
+    @st.cache_data(ttl=3600)
+    def compute_eumi_data():
+        """Compute EUMI from enrollment and biometric datasets"""
+        try:
+            # Aggregate enrollment at district level
+            df_enrol_agg = df_enrol.groupby('district').agg({
+                'total_enrolment': 'sum',
+                'state': 'first'
+            }).reset_index()
+            
+            # Aggregate biometric at district level
+            df_bio_agg = df_bio.groupby('district').agg({
+                'total_bio': 'sum',
+                'state': 'first'
+            }).reset_index() if not df_bio.empty else pd.DataFrame()
+            
+            if df_bio_agg.empty:
+                st.warning("⚠️ Biometric data not available. Cannot compute EUMI.")
+                return None
+            
+            # Merge datasets on district
+            merged_df = pd.merge(df_enrol_agg, df_bio_agg[['district', 'total_bio']], on='district', how='outer')
+            merged_df['total_enrolment'] = merged_df['total_enrolment'].fillna(0)
+            merged_df['total_bio'] = merged_df['total_bio'].fillna(0)
+            
+            # Compute shares
+            total_enrol = merged_df['total_enrolment'].sum()
+            total_bio = merged_df['total_bio'].sum()
+            
+            merged_df['enroll_share'] = merged_df['total_enrolment'] / total_enrol if total_enrol > 0 else 0
+            merged_df['usage_share'] = merged_df['total_bio'] / total_bio if total_bio > 0 else 0
+            
+            # Compute EUMI with safeguard against division by zero
+            merged_df['EUMI'] = np.where(
+                merged_df['enroll_share'] > 0, 
+                merged_df['usage_share'] / merged_df['enroll_share'],
+                np.nan
+            )
+            
+            # Categorize districts based on EUMI
+            conditions = [
+                (merged_df['EUMI'] < 0.8),
+                (merged_df['EUMI'] >= 0.8) & (merged_df['EUMI'] <= 1.2),
+                (merged_df['EUMI'] > 1.2)
+            ]
+            choices = ["Over-enrolled, under-used", "Balanced", "Under-enrolled, high-usage"]
+            merged_df['category'] = np.select(conditions, choices, default="Unknown")
+            
+            return merged_df
+        except Exception as e:
+            st.error(f"Error computing EUMI: {str(e)}")
+            return None
+    
+    eumi_data = compute_eumi_data()
+    
+    if eumi_data is not None and not eumi_data.empty:
+        # Modern KPI Cards with Professional Styling
+        over_enrolled = (eumi_data['category'] == "Over-enrolled, under-used").sum()
+        balanced = (eumi_data['category'] == "Balanced").sum()
+        under_enrolled = (eumi_data['category'] == "Under-enrolled, high-usage").sum()
+        
+        col1, col2, col3 = st.columns(3, gap="medium")
+        
+        # Over-Enrolled Card (Red/Orange theme)
+        with col1:
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+                border: 1px solid #fecaca;
+                border-radius: 12px;
+                padding: 1.75rem;
+                text-align: center;
+                box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08);
+                transition: all 0.3s ease;
+            ">
+                <div style="
+                    font-size: 0.85rem;
+                    color: #991b1b;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 0.75rem;
+                ">
+                    Over-Enrolled
+                </div>
+                <div style="
+                    font-size: 3rem;
+                    font-weight: 700;
+                    color: #dc2626;
+                    margin-bottom: 0.5rem;
+                    line-height: 1;
+                ">
+                    {over_enrolled}
+                </div>
+                <div style="
+                    font-size: 0.9rem;
+                    color: #7f1d1d;
+                    font-weight: 500;
+                ">
+                    Under-used Districts
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Balanced Card (Green theme)
+        with col2:
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                border: 1px solid #86efac;
+                border-radius: 12px;
+                padding: 1.75rem;
+                text-align: center;
+                box-shadow: 0 2px 8px rgba(34, 197, 94, 0.08);
+                transition: all 0.3s ease;
+            ">
+                <div style="
+                    font-size: 0.85rem;
+                    color: #166534;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 0.75rem;
+                ">
+                    Balanced
+                </div>
+                <div style="
+                    font-size: 3rem;
+                    font-weight: 700;
+                    color: #22c55e;
+                    margin-bottom: 0.5rem;
+                    line-height: 1;
+                ">
+                    {balanced}
+                </div>
+                <div style="
+                    font-size: 0.9rem;
+                    color: #15803d;
+                    font-weight: 500;
+                ">
+                    Optimal Districts
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Under-Enrolled Card (Blue theme)
+        with col3:
+            st.markdown(f"""
+            <div style="
+                background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                border: 1px solid #93c5fd;
+                border-radius: 12px;
+                padding: 1.75rem;
+                text-align: center;
+                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+                transition: all 0.3s ease;
+            ">
+                <div style="
+                    font-size: 0.85rem;
+                    color: #1e40af;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 0.75rem;
+                ">
+                    Under-Enrolled
+                </div>
+                <div style="
+                    font-size: 3rem;
+                    font-weight: 700;
+                    color: #3b82f6;
+                    margin-bottom: 0.5rem;
+                    line-height: 1;
+                ">
+                    {under_enrolled}
+                </div>
+                <div style="
+                    font-size: 0.9rem;
+                    color: #1e3a8a;
+                    font-weight: 500;
+                ">
+                    High-Usage Districts
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Add spacing
+        st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
+        
+        # Modern Tab Navigation
+        tab1, tab2, tab3 = st.tabs(["📊 Scatter Plot", "📈 Summary Statistics", "📋 District Breakdown"])
+        
+        with tab1:
+            st.markdown("""
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.3rem; font-weight: 600; color: #1a1a2e; margin: 0;">
+                    EUMI Scatter Plot
+                </h3>
+                <p style="font-size: 0.9rem; color: #6c757d; margin: 0.5rem 0 0 0;">
+                    Visualize enrollment share vs biometric usage share by district
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            fig = px.scatter(
+                eumi_data,
+                x='enroll_share',
+                y='usage_share',
+                color='category',
+                hover_data=['district', 'total_enrolment', 'total_bio', 'EUMI'],
+                title=None,
+                labels={
+                    'enroll_share': 'Enrollment Share (%)',
+                    'usage_share': 'Biometric Usage Share (%)',
+                    'category': 'Category'
+                },
+                color_discrete_map={
+                    "Over-enrolled, under-used": "#ef4444",
+                    "Balanced": "#22c55e",
+                    "Under-enrolled, high-usage": "#3b82f6"
+                }
+            )
+            
+            # Add diagonal line for perfect balance
+            max_val = max(eumi_data['enroll_share'].max(), eumi_data['usage_share'].max())
+            fig.add_shape(
+                type="line",
+                x0=0, y0=0,
+                x1=max_val, y1=max_val,
+                line=dict(dash="dash", color="rgba(100, 100, 100, 0.5)", width=2),
+                name="Perfect Balance (1:1)"
+            )
+            
+            fig.update_layout(
+                height=550,
+                hovermode='closest',
+                plot_bgcolor='rgba(240, 242, 245, 0.5)',
+                paper_bgcolor='white',
+                font=dict(family="Inter, sans-serif", size=11),
+                margin=dict(l=50, r=50, t=30, b=50)
+            )
+            fig.update_xaxes(gridcolor='rgba(200, 200, 200, 0.2)', showgrid=True)
+            fig.update_yaxes(gridcolor='rgba(200, 200, 200, 0.2)', showgrid=True)
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with tab2:
+            st.markdown("""
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.3rem; font-weight: 600; color: #1a1a2e; margin: 0;">
+                    Summary Statistics
+                </h3>
+                <p style="font-size: 0.9rem; color: #6c757d; margin: 0.5rem 0 0 0;">
+                    Top districts by enrollment and usage imbalance
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            col1, col2 = st.columns(2, gap="large")
+            
+            with col1:
+                st.markdown("""
+                <div style="
+                    background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+                    border: 1px solid #fecaca;
+                    border-radius: 10px;
+                    padding: 1.25rem;
+                    margin-bottom: 1rem;
+                ">
+                    <h4 style="
+                        font-size: 1rem;
+                        font-weight: 600;
+                        color: #991b1b;
+                        margin: 0 0 1rem 0;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                    ">
+                        🔴 Over-Enrolled Districts
+                    </h4>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                over_used = eumi_data[eumi_data['category'] == "Over-enrolled, under-used"].nlargest(10, 'enroll_share')[
+                    ['district', 'state', 'total_enrolment', 'EUMI']
+                ].copy()
+                over_used.columns = ['District', 'State', 'Enrollments', 'EUMI']
+                over_used['Enrollments'] = over_used['Enrollments'].apply(lambda x: f"{int(x):,}")
+                over_used['EUMI'] = over_used['EUMI'].apply(lambda x: f"{x:.2f}")
+                
+                st.dataframe(
+                    over_used,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "District": st.column_config.TextColumn(width="medium"),
+                        "State": st.column_config.TextColumn(width="small"),
+                        "Enrollments": st.column_config.TextColumn(width="small"),
+                        "EUMI": st.column_config.TextColumn(width="small")
+                    }
+                )
+            
+            with col2:
+                st.markdown("""
+                <div style="
+                    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                    border: 1px solid #93c5fd;
+                    border-radius: 10px;
+                    padding: 1.25rem;
+                    margin-bottom: 1rem;
+                ">
+                    <h4 style="
+                        font-size: 1rem;
+                        font-weight: 600;
+                        color: #1e40af;
+                        margin: 0 0 1rem 0;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                    ">
+                        🔵 Under-Enrolled Districts
+                    </h4>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                under_used = eumi_data[eumi_data['category'] == "Under-enrolled, high-usage"].nlargest(10, 'usage_share')[
+                    ['district', 'state', 'total_bio', 'EUMI']
+                ].copy()
+                under_used.columns = ['District', 'State', 'Biometric Usage', 'EUMI']
+                under_used['Biometric Usage'] = under_used['Biometric Usage'].apply(lambda x: f"{int(x):,}")
+                under_used['EUMI'] = under_used['EUMI'].apply(lambda x: f"{x:.2f}")
+                
+                st.dataframe(
+                    under_used,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "District": st.column_config.TextColumn(width="medium"),
+                        "State": st.column_config.TextColumn(width="small"),
+                        "Biometric Usage": st.column_config.TextColumn(width="small"),
+                        "EUMI": st.column_config.TextColumn(width="small")
+                    }
+                )
+        
+        with tab3:
+            st.markdown("""
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.3rem; font-weight: 600; color: #1a1a2e; margin: 0;">
+                    District Breakdown
+                </h3>
+                <p style="font-size: 0.9rem; color: #6c757d; margin: 0.5rem 0 0 0;">
+                    Complete EUMI analysis for all districts
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            display_df = eumi_data[['district', 'state', 'total_enrolment', 'total_bio', 'enroll_share', 'usage_share', 'EUMI', 'category']].copy()
+            display_df.columns = ['District', 'State', 'Enrollments', 'Biometric Usage', 'Enroll Share', 'Usage Share', 'EUMI', 'Category']
+            display_df = display_df.sort_values('EUMI', ascending=False)
+            
+            # Format numbers for display
+            display_df['Enrollments'] = display_df['Enrollments'].apply(lambda x: f"{int(x):,}")
+            display_df['Biometric Usage'] = display_df['Biometric Usage'].apply(lambda x: f"{int(x):,}")
+            display_df['Enroll Share'] = display_df['Enroll Share'].apply(lambda x: f"{x*100:.2f}%")
+            display_df['Usage Share'] = display_df['Usage Share'].apply(lambda x: f"{x*100:.2f}%")
+            display_df['EUMI'] = display_df['EUMI'].apply(lambda x: f"{x:.3f}" if pd.notna(x) else "N/A")
+            
+            st.dataframe(
+                display_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "District": st.column_config.TextColumn(width="medium"),
+                    "State": st.column_config.TextColumn(width="small"),
+                    "Enrollments": st.column_config.TextColumn(width="small"),
+                    "Biometric Usage": st.column_config.TextColumn(width="small"),
+                    "Enroll Share": st.column_config.TextColumn(width="small"),
+                    "Usage Share": st.column_config.TextColumn(width="small"),
+                    "EUMI": st.column_config.TextColumn(width="small"),
+                    "Category": st.column_config.TextColumn(width="medium")
+                }
+            )
+    else:
+        st.error("Unable to compute EUMI. Please check that both enrollment and biometric datasets are available.")
+
+# ================================================================================
 
 # ================================================================================
 # FOOTER

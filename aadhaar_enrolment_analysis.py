@@ -397,3 +397,53 @@ print(f"""
 print("="*80)
 print("ANALYSIS COMPLETE")
 print("="*80)
+
+# ================================================================================
+# SECTION 3: COMPUTE ENROLLMENT–USAGE MISMATCH INDEX (EUMI)
+# ================================================================================
+
+# Check if the necessary datasets are loaded
+if 'df_enrollment' in locals() and 'df_biometric' in locals():
+    print("\n\u2713 Using existing datasets for EUMI calculation...")
+else:
+    # Load and aggregate datasets if not already done
+    print("\n\u274c Loading and aggregating datasets...")
+    df_enrollment = pd.read_csv('filtered_data/consolidated_enrolment.csv')
+    df_biometric = pd.read_csv('filtered_data/consolidated_biometric.csv')
+    # Aggregate at district level
+    df_enrollment = df_enrollment.groupby('district').agg({'total_enrolment': 'sum'}).reset_index()
+    df_biometric = df_biometric.groupby('district').agg({'total_biometric': 'sum'}).reset_index()
+
+# Merge datasets on district
+merged_df = pd.merge(df_enrollment, df_biometric, on='district', how='outer')
+
+# Compute shares
+merged_df['enroll_share'] = merged_df['total_enrolment'] / merged_df['total_enrolment'].sum()
+merged_df['usage_share'] = merged_df['total_biometric'] / merged_df['total_biometric'].sum()
+
+# Compute EUMI with safeguard against division by zero
+merged_df['EUMI'] = np.where(merged_df['enroll_share'] == 0, np.nan, merged_df['usage_share'] / merged_df['enroll_share'])
+
+# Categorize districts based on EUMI
+conditions = [
+    (merged_df['EUMI'] < 0.8),
+    (merged_df['EUMI'] >= 0.8) & (merged_df['EUMI'] <= 1.2),
+    (merged_df['EUMI'] > 1.2)
+]
+choices = ["Over-enrolled, under-used", "Balanced", "Under-enrolled, high-usage"]
+merged_df['category'] = np.select(conditions, choices, default="Unknown")
+
+# Display summary statistics
+print(merged_df[['district', 'EUMI', 'category']].head(10))
+
+# Functions for EUMI calculations
+
+def compute_eumi(df):
+    # Function to compute EUMI
+    pass  # Placeholder for future implementation
+
+# Visualization functions
+
+def plot_eumi_scatter(df):
+    # Function to plot EUMI scatter plot
+    pass  # Placeholder for future implementation
