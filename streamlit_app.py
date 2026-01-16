@@ -416,7 +416,8 @@ with st.sidebar:
         ("📋", "Detailed Analysis"),
         ("🔮", "Predictive"),
         ("🔍", "Data Explorer"),
-        ("⚖️", "EUMI Analysis")
+        ("⚖️", "EUMI Analysis"),
+        ("📉", "Policy Shock Analyzer")
     ]
     
     for icon, name in nav_items:
@@ -1666,6 +1667,631 @@ elif page == "EUMI Analysis":
         st.error("Unable to compute EUMI. Please check that both enrollment and biometric datasets are available.")
 
 # ================================================================================
+# PAGE: POLICY SHOCK IMPACT ANALYZER
+# ================================================================================
+
+elif page == "Policy Shock Analyzer":
+    st.markdown("""
+    <div style="margin-bottom: 1.5rem;">
+        <h1 style="font-size: 2.5rem; font-weight: 700; color: #1a1a2e; margin: 0 0 0.5rem 0; letter-spacing: -0.5px;">
+            Policy Shock Impact Analyzer
+        </h1>
+        <p style="font-size: 1rem; color: #6c757d; margin: 0; font-weight: 400;">
+            Did a government policy drive actually create lasting change? Find out here.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Show filter indicator if state filter is applied
+    show_filter_indicator()
+    
+    # Comprehensive help guide - collapsed by default
+    with st.expander("📖 How to Use This Analyzer (Click to Expand)", expanded=False):
+        st.markdown("""
+        ### What This Analyzer Does
+        
+        When UIDAI launches a policy drive (like a mass enrollment campaign), enrollment **spikes temporarily**. 
+        But the real question is: **Did people actually start USING their Aadhaar after enrolling?**
+        
+        This analyzer answers that by:
+        1. **Finding spike months** - Months with unusually high enrollment
+        2. **Comparing before vs after** - What happened 30 days before and after the spike
+        3. **Measuring real impact** - Did usage, youth adoption, or district coverage actually improve?
+        
+        ---
+        
+        ### Understanding the Metrics
+        
+        | Metric | What It Means | Good Value | Bad Value |
+        |--------|---------------|------------|-----------|
+        | **Biometric Persistence Ratio** | Are people using Aadhaar after enrolling? | > 1.0x (usage increased) | < 1.0x (usage dropped) |
+        | **Youth Adoption Change** | Did more young people start using Aadhaar? | Positive (more youth) | Negative (fewer youth) |
+        | **District Expansion Rate** | Did Aadhaar reach new areas? | Positive (new districts) | Zero or negative |
+        
+        ---
+        
+        ### Shock Classifications Explained
+        
+        - 🟡 **Enrollment-Only Shock**: People enrolled but didn't start using Aadhaar → *Temporary campaign, no lasting impact*
+        - 🟢 **Behavioral Adoption Shock**: People enrolled AND started using Aadhaar → *Successful policy!*
+        - 🔵 **Structural Expansion Shock**: Aadhaar reached new districts → *Geographic success!*
+        
+        ---
+        
+        ### How to Use
+        1. Select a month from the dropdown below
+        2. Review the three impact indicators
+        3. Check the classification badge to understand the overall impact
+        4. Use the tabs to explore detailed visualizations
+        """)
+    
+    def detect_shock_months(enrol_df, threshold_sigma=1.5):
+        """Detect months where enrollment > mean + threshold*std"""
+        if enrol_df.empty or 'date' not in enrol_df.columns:
+            return pd.DataFrame(), pd.DataFrame()
+        
+        # Aggregate to monthly
+        enrol_df = enrol_df.copy()
+        enrol_df['month'] = pd.to_datetime(enrol_df['date']).dt.to_period('M')
+        monthly = enrol_df.groupby('month')['total_enrolment'].sum().reset_index()
+        
+        if len(monthly) < 2:
+            return pd.DataFrame(), monthly
+        
+        mean_enrol = monthly['total_enrolment'].mean()
+        std_enrol = monthly['total_enrolment'].std()
+        
+        # Handle case when std is 0 or very small
+        if std_enrol == 0 or pd.isna(std_enrol):
+            std_enrol = mean_enrol * 0.1  # Use 10% of mean as fallback
+        
+        threshold = mean_enrol + threshold_sigma * std_enrol
+        
+        # Calculate z-scores for all months
+        monthly['z_score'] = (monthly['total_enrolment'] - mean_enrol) / std_enrol
+        monthly['mean'] = mean_enrol
+        monthly['std'] = std_enrol
+        monthly['threshold'] = threshold
+        
+        shock_months = monthly[monthly['total_enrolment'] > threshold].copy()
+        
+        # If no shocks found, return top 3 highest enrollment months for analysis
+        if shock_months.empty:
+            shock_months = monthly.nlargest(3, 'total_enrolment').copy()
+        
+        return shock_months, monthly
+    
+    def compute_impact_metrics(shock_month, enrol_df, bio_df):
+        """Compute pre/post impact metrics for a shock month"""
+        try:
+            # Convert period to datetime for filtering
+            shock_start = shock_month.to_timestamp()
+            shock_end = shock_start + pd.DateOffset(months=1)
+            
+            pre_start = shock_start - pd.DateOffset(days=30)
+            pre_end = shock_start
+            post_start = shock_end
+            post_end = shock_end + pd.DateOffset(days=30)
+            
+            # Filter biometric data
+            bio_df = bio_df.copy()
+            bio_df['date'] = pd.to_datetime(bio_df['date'])
+            
+            pre_bio = bio_df[(bio_df['date'] >= pre_start) & (bio_df['date'] < pre_end)]
+            post_bio = bio_df[(bio_df['date'] >= post_start) & (bio_df['date'] < post_end)]
+            
+            # Biometric Persistence Ratio
+            pre_avg_bio = pre_bio['total_bio'].mean() if not pre_bio.empty else 0
+            post_avg_bio = post_bio['total_bio'].mean() if not post_bio.empty else 0
+            persistence_ratio = post_avg_bio / pre_avg_bio if pre_avg_bio > 0 else 0
+            
+            # Youth Adoption Change (using age columns if available)
+            pre_youth_total = 0
+            post_youth_total = 0
+            pre_adult_total = 0
+            post_adult_total = 0
+            
+            if 'age_5_17' in bio_df.columns and 'age_18_greater' in bio_df.columns:
+                pre_youth_total = pre_bio['age_5_17'].sum() if not pre_bio.empty else 0
+                post_youth_total = post_bio['age_5_17'].sum() if not post_bio.empty else 0
+                pre_adult_total = pre_bio['age_18_greater'].sum() if not pre_bio.empty else 0
+                post_adult_total = post_bio['age_18_greater'].sum() if not post_bio.empty else 0
+            
+            pre_total = pre_youth_total + pre_adult_total
+            post_total = post_youth_total + post_adult_total
+            
+            pre_youth_share = pre_youth_total / pre_total if pre_total > 0 else 0
+            post_youth_share = post_youth_total / post_total if post_total > 0 else 0
+            youth_adoption_change = (post_youth_share - pre_youth_share) * 100
+            
+            # District Expansion Rate
+            pre_districts = pre_bio['district'].nunique() if not pre_bio.empty and 'district' in pre_bio.columns else 0
+            post_districts = post_bio['district'].nunique() if not post_bio.empty and 'district' in post_bio.columns else 0
+            district_expansion = (post_districts - pre_districts) / pre_districts if pre_districts > 0 else 0
+            
+            # Shock Classification
+            if persistence_ratio < 1.1 and abs(youth_adoption_change) < 5 and district_expansion < 0.1:
+                classification = "Enrollment-Only Shock"
+                classification_color = "#f59e0b"
+                interpretation = "Enrollment spike without lasting usage impact. The policy drive increased registrations but did not result in sustained Aadhaar usage patterns."
+            elif persistence_ratio >= 1.2 or youth_adoption_change >= 5:
+                classification = "Behavioral Adoption Shock"
+                classification_color = "#22c55e"
+                interpretation = "Policy drive resulted in sustained Aadhaar usage, especially among youth. This indicates successful behavioral change and adoption."
+            elif district_expansion >= 0.1:
+                classification = "Structural Expansion Shock"
+                classification_color = "#3b82f6"
+                interpretation = "Policy drive expanded Aadhaar usage to new districts. This shows successful geographic penetration of Aadhaar services."
+            else:
+                classification = "Mixed Impact"
+                classification_color = "#6c757d"
+                interpretation = "The policy shock had mixed effects across different metrics."
+            
+            return {
+                'persistence_ratio': persistence_ratio,
+                'youth_adoption_change': youth_adoption_change,
+                'district_expansion': district_expansion * 100,
+                'pre_avg_bio': pre_avg_bio,
+                'post_avg_bio': post_avg_bio,
+                'pre_districts': pre_districts,
+                'post_districts': post_districts,
+                'pre_youth_share': pre_youth_share * 100,
+                'post_youth_share': post_youth_share * 100,
+                'classification': classification,
+                'classification_color': classification_color,
+                'interpretation': interpretation,
+                'pre_bio_data': pre_bio,
+                'post_bio_data': post_bio
+            }
+        except Exception as e:
+            st.error(f"Error computing metrics: {str(e)}")
+            return None
+    
+    # Detect shock months
+    shock_months, all_monthly = detect_shock_months(df_enrol)
+    
+    if shock_months.empty:
+        st.info("Insufficient monthly data available for shock analysis.")
+    else:
+        # Check if these are true anomalies or fallback top months
+        true_anomalies = shock_months[shock_months['z_score'] > 1.5]
+        is_fallback = true_anomalies.empty
+        
+        # Show summary of available data
+        total_months_in_data = len(all_monthly)
+        st.markdown(f"""
+        <div class="insight-card">
+            <p class="insight-title">Data Overview</p>
+            <p class="insight-text">
+                Your dataset contains <strong>{total_months_in_data}</strong> month(s) of enrollment data.
+                {f"<strong>{len(true_anomalies)}</strong> month(s) show statistical anomalies (> 1.5σ above mean)." if not is_fallback else "No statistical anomalies detected."}
+            </p>
+            <span class="badge badge-primary">READY FOR ANALYSIS</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Show ALL months in dropdown for comprehensive analysis
+        all_month_options = [str(m) for m in all_monthly.sort_values('total_enrolment', ascending=False)['month'].tolist()]
+        
+        # Mark anomalies in the display
+        anomaly_months = set(str(m) for m in true_anomalies['month'].tolist()) if not true_anomalies.empty else set()
+        
+        # Find index of 2025-11 for default selection
+        default_idx = all_month_options.index("2025-11") if "2025-11" in all_month_options else 0
+        
+        selected_shock = st.selectbox(
+            "Select Month for Impact Analysis",
+            options=all_month_options,
+            index=default_idx,
+            format_func=lambda x: f"⚠️ {x} (Anomaly)" if x in anomaly_months else x,
+            help="All available months are shown, sorted by enrollment volume. Months marked with ⚠️ are statistical anomalies."
+        )
+        
+        if selected_shock:
+            selected_period = pd.Period(selected_shock)
+            # Look up from all_monthly, not shock_months
+            month_row = all_monthly[all_monthly['month'] == selected_period].iloc[0]
+            
+            # Show month details
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <p class="kpi-label">Month Enrollment</p>
+                    <p class="kpi-value">{month_row['total_enrolment']/1e6:.2f}M</p>
+                </div>
+                """, unsafe_allow_html=True)
+            with col2:
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <p class="kpi-label">Average (All Months)</p>
+                    <p class="kpi-value">{month_row['mean']/1e6:.2f}M</p>
+                </div>
+                """, unsafe_allow_html=True)
+            with col3:
+                z_score = month_row['z_score']
+                z_color = "#dc2626" if z_score > 1.5 else "#22c55e" if z_score > 0 else "#6c757d"
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <p class="kpi-label">Z-Score (vs Average)</p>
+                    <p class="kpi-value" style="color: {z_color};">{z_score:+.2f}σ</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown('<div class="gradient-divider"></div>', unsafe_allow_html=True)
+            
+            # Compute impact metrics
+            metrics = compute_impact_metrics(selected_period, df_enrol, df_bio)
+            
+            # Check if we have meaningful data and warn user if not
+            has_meaningful_data = metrics and metrics['persistence_ratio'] > 0 and metrics['pre_districts'] > 0
+            
+            if not has_meaningful_data:
+                st.markdown("""
+                <div style="
+                    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+                    border: 1px solid #f59e0b;
+                    border-radius: 10px;
+                    padding: 1.25rem;
+                    margin: 1rem 0;
+                ">
+                    <p style="font-weight: 600; color: #92400e; margin: 0 0 0.5rem 0;">
+                        ⚠️ Limited Data Available for This Analysis
+                    </p>
+                    <p style="color: #78350f; margin: 0; font-size: 0.9rem; line-height: 1.5;">
+                        The biometric usage data in your dataset doesn't fully overlap with the 30-day pre/post periods around this month.
+                        This is why some metrics show 0.00x or unusual values.<br><br>
+                        <strong>For accurate Policy Shock Analysis, you need:</strong><br>
+                        • Enrollment data spanning multiple months<br>
+                        • Biometric usage data that covers dates before AND after the enrollment spike
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            if metrics:
+                # Classification Badge
+                st.markdown(f"""
+                <div style="
+                    background: linear-gradient(135deg, {metrics['classification_color']}15 0%, {metrics['classification_color']}25 100%);
+                    border: 2px solid {metrics['classification_color']};
+                    border-radius: 12px;
+                    padding: 1.5rem;
+                    margin: 1.5rem 0;
+                    text-align: center;
+                ">
+                    <p style="font-size: 0.85rem; color: {metrics['classification_color']}; font-weight: 600; text-transform: uppercase; margin: 0 0 0.5rem 0;">
+                        SHOCK CLASSIFICATION
+                    </p>
+                    <p style="font-size: 1.75rem; font-weight: 700; color: {metrics['classification_color']}; margin: 0;">
+                        {metrics['classification']}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Impact KPIs with user-friendly explanations
+                st.markdown('<p class="section-header">Impact Indicators (30-Day Pre/Post Comparison)</p>', unsafe_allow_html=True)
+                
+                # Plain English interpretation helper
+                def interpret_persistence(ratio):
+                    if ratio >= 1.2:
+                        return "✅ Great! People are using Aadhaar more after the drive."
+                    elif ratio >= 1.0:
+                        return "👍 Good. Usage remained stable after enrollment."
+                    elif ratio > 0:
+                        return "⚠️ Concern: Usage dropped after the enrollment spike."
+                    else:
+                        return "❓ No biometric data available for comparison."
+                
+                def interpret_youth(change):
+                    if change >= 5:
+                        return "✅ Great! Youth adoption increased significantly."
+                    elif change >= 0:
+                        return "👍 Youth share remained stable."
+                    else:
+                        return "⚠️ Youth share decreased after the drive."
+                
+                def interpret_districts(expansion, pre, post):
+                    if pre == 0:
+                        return f"📊 {post} districts active after the spike."
+                    elif expansion >= 10:
+                        return f"✅ Expanded to {post - pre} new districts!"
+                    elif expansion >= 0:
+                        return f"👍 Coverage maintained across {post} districts."
+                    else:
+                        return f"⚠️ Fewer districts active after the spike."
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    ratio_color = "#22c55e" if metrics['persistence_ratio'] >= 1 else "#dc2626"
+                    interpretation = interpret_persistence(metrics['persistence_ratio'])
+                    st.markdown(f"""
+                    <div class="kpi-card" style="border-color: {ratio_color}40;">
+                        <p class="kpi-label">Biometric Persistence</p>
+                        <p class="kpi-value" style="color: {ratio_color};">{metrics['persistence_ratio']:.2f}x</p>
+                        <p style="font-size: 0.75rem; color: #6c757d; margin: 0.5rem 0 0 0; line-height: 1.3;">
+                            {interpretation}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    youth_color = "#22c55e" if metrics['youth_adoption_change'] >= 0 else "#dc2626"
+                    interpretation = interpret_youth(metrics['youth_adoption_change'])
+                    st.markdown(f"""
+                    <div class="kpi-card" style="border-color: {youth_color}40;">
+                        <p class="kpi-label">Youth Adoption</p>
+                        <p class="kpi-value" style="color: {youth_color};">{metrics['youth_adoption_change']:+.1f}pp</p>
+                        <p style="font-size: 0.75rem; color: #6c757d; margin: 0.5rem 0 0 0; line-height: 1.3;">
+                            {interpretation}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col3:
+                    dist_color = "#22c55e" if metrics['district_expansion'] >= 0 else "#dc2626"
+                    interpretation = interpret_districts(metrics['district_expansion'], metrics['pre_districts'], metrics['post_districts'])
+                    st.markdown(f"""
+                    <div class="kpi-card" style="border-color: {dist_color}40;">
+                        <p class="kpi-label">District Coverage</p>
+                        <p class="kpi-value" style="color: {dist_color};">{metrics['pre_districts']} → {metrics['post_districts']}</p>
+                        <p style="font-size: 0.75rem; color: #6c757d; margin: 0.5rem 0 0 0; line-height: 1.3;">
+                            {interpretation}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown('<div class="gradient-divider"></div>', unsafe_allow_html=True)
+                
+                # Visualizations
+                tab1, tab2, tab3 = st.tabs(["📈 Usage Trend", "👥 Age Comparison", "🗺️ District Delta"])
+                
+                with tab1:
+                    st.markdown('<p class="section-header">Before–After Biometric Usage</p>', unsafe_allow_html=True)
+                    
+                    pre_data = metrics['pre_bio_data']
+                    post_data = metrics['post_bio_data']
+                    
+                    if not pre_data.empty and not post_data.empty:
+                        # Create combined chart
+                        pre_daily = pre_data.groupby('date')['total_bio'].sum().reset_index()
+                        pre_daily['period'] = 'Pre-Shock (30 days before)'
+                        
+                        post_daily = post_data.groupby('date')['total_bio'].sum().reset_index()
+                        post_daily['period'] = 'Post-Shock (30 days after)'
+                        
+                        fig = go.Figure()
+                        fig.add_trace(go.Scatter(
+                            x=pre_daily['date'], y=pre_daily['total_bio'],
+                            mode='lines+markers', name='Pre-Shock',
+                            line=dict(color='#6c757d', width=2),
+                            marker=dict(size=4)
+                        ))
+                        fig.add_trace(go.Scatter(
+                            x=post_daily['date'], y=post_daily['total_bio'],
+                            mode='lines+markers', name='Post-Shock',
+                            line=dict(color='#22c55e', width=2),
+                            marker=dict(size=4)
+                        ))
+                        
+                        # Add horizontal lines for averages
+                        fig.add_hline(y=metrics['pre_avg_bio'], line_dash="dash", line_color="#6c757d",
+                                     annotation_text=f"Pre Avg: {metrics['pre_avg_bio']/1e3:.1f}K")
+                        fig.add_hline(y=metrics['post_avg_bio'], line_dash="dash", line_color="#22c55e",
+                                     annotation_text=f"Post Avg: {metrics['post_avg_bio']/1e3:.1f}K")
+                        
+                        fig.update_layout(
+                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                            height=400, hovermode='x unified',
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+                            yaxis=dict(title='Daily Biometric Usage', showgrid=True, gridcolor='rgba(0,0,0,0.05)')
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        # Dynamic inference for Usage Trend
+                        pre_avg = metrics['pre_avg_bio']
+                        post_avg = metrics['post_avg_bio']
+                        change_pct = ((post_avg - pre_avg) / pre_avg * 100) if pre_avg > 0 else 0
+                        
+                        # Calculate volatility
+                        pre_std = pre_daily['total_bio'].std() if len(pre_daily) > 1 else 0
+                        post_std = post_daily['total_bio'].std() if len(post_daily) > 1 else 0
+                        pre_cv = (pre_std / pre_avg * 100) if pre_avg > 0 else 0
+                        post_cv = (post_std / post_avg * 100) if post_avg > 0 else 0
+                        
+                        # Generate dynamic insight
+                        if change_pct > 20:
+                            usage_insight = f"📈 <strong>Strong Usage Growth:</strong> Daily biometric usage increased by <strong>{change_pct:.0f}%</strong> after the enrollment spike. This suggests the policy drive successfully converted new enrollees into active Aadhaar users."
+                            insight_color = "#22c55e"
+                        elif change_pct > 0:
+                            usage_insight = f"📊 <strong>Moderate Growth:</strong> Usage increased by <strong>{change_pct:.0f}%</strong> post-shock. While positive, there may be room to improve engagement strategies."
+                            insight_color = "#3b82f6"
+                        elif change_pct > -20:
+                            usage_insight = f"⚠️ <strong>Slight Decline:</strong> Usage dropped by <strong>{abs(change_pct):.0f}%</strong>. The enrollment spike may have been driven by mandatory requirements rather than genuine adoption."
+                            insight_color = "#f59e0b"
+                        else:
+                            usage_insight = f"🔴 <strong>Significant Drop:</strong> Usage fell by <strong>{abs(change_pct):.0f}%</strong>. Consider re-engagement campaigns to convert enrollees to active users."
+                            insight_color = "#dc2626"
+                        
+                        # Add volatility insight
+                        if post_cv > pre_cv * 1.5:
+                            volatility_note = f"The post-shock period shows higher volatility ({post_cv:.0f}% vs {pre_cv:.0f}%), indicating inconsistent adoption patterns."
+                        elif post_cv < pre_cv * 0.7:
+                            volatility_note = f"Usage has become more stable post-shock ({post_cv:.0f}% vs {pre_cv:.0f}%), suggesting normalized behavior."
+                        else:
+                            volatility_note = f"Usage volatility remained similar before and after the shock."
+                        
+                        st.markdown(f"""
+                        <div style="
+                            background: linear-gradient(135deg, {insight_color}10 0%, {insight_color}20 100%);
+                            border-left: 4px solid {insight_color};
+                            border-radius: 8px;
+                            padding: 1rem 1.25rem;
+                            margin-top: 1rem;
+                        ">
+                            <p style="margin: 0 0 0.5rem 0; color: #1a1a2e; font-size: 0.9rem; line-height: 1.5;">
+                                {usage_insight}
+                            </p>
+                            <p style="margin: 0; color: #6c757d; font-size: 0.8rem;">
+                                {volatility_note}
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.info("Insufficient data for usage trend visualization")
+                
+                with tab2:
+                    st.markdown('<p class="section-header">Youth vs Adult Share Comparison</p>', unsafe_allow_html=True)
+                    
+                    fig_age = go.Figure(data=[
+                        go.Bar(name='Pre-Shock', x=['Youth (5-17)', 'Adult (18+)'],
+                               y=[metrics['pre_youth_share'], 100-metrics['pre_youth_share']],
+                               marker_color='#6c757d'),
+                        go.Bar(name='Post-Shock', x=['Youth (5-17)', 'Adult (18+)'],
+                               y=[metrics['post_youth_share'], 100-metrics['post_youth_share']],
+                               marker_color='#22c55e')
+                    ])
+                    fig_age.update_layout(
+                        barmode='group',
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                        height=350,
+                        yaxis=dict(title='Share (%)', showgrid=True, gridcolor='rgba(0,0,0,0.05)'),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
+                    )
+                    st.plotly_chart(fig_age, use_container_width=True)
+                    
+                    # Dynamic inference for Age Comparison
+                    youth_change = metrics['youth_adoption_change']
+                    pre_youth = metrics['pre_youth_share']
+                    post_youth = metrics['post_youth_share']
+                    
+                    if youth_change >= 5:
+                        age_insight = f"🎯 <strong>Youth-Focused Success:</strong> Youth share increased from <strong>{pre_youth:.1f}%</strong> to <strong>{post_youth:.1f}%</strong> (+{youth_change:.1f}pp). The policy drive effectively onboarded younger demographics, who are more likely to be long-term Aadhaar users."
+                        age_color = "#22c55e"
+                    elif youth_change >= 0:
+                        age_insight = f"📊 <strong>Stable Demographics:</strong> Youth share remained steady at around <strong>{post_youth:.1f}%</strong>. The enrollment drive attracted proportional representation across age groups."
+                        age_color = "#3b82f6"
+                    elif youth_change >= -5:
+                        age_insight = f"📉 <strong>Adult-Skewed Enrollment:</strong> Youth share dropped from <strong>{pre_youth:.1f}%</strong> to <strong>{post_youth:.1f}%</strong>. The policy may have primarily targeted adults. Consider youth-focused campaigns in schools and colleges."
+                        age_color = "#f59e0b"
+                    else:
+                        age_insight = f"⚠️ <strong>Youth Exclusion Concern:</strong> Significant drop in youth share ({youth_change:.1f}pp). Investigate potential barriers preventing youth enrollment such as parental consent requirements or school accessibility issues."
+                        age_color = "#dc2626"
+                    
+                    st.markdown(f"""
+                    <div style="
+                        background: linear-gradient(135deg, {age_color}10 0%, {age_color}20 100%);
+                        border-left: 4px solid {age_color};
+                        border-radius: 8px;
+                        padding: 1rem 1.25rem;
+                        margin-top: 1rem;
+                    ">
+                        <p style="margin: 0; color: #1a1a2e; font-size: 0.9rem; line-height: 1.5;">
+                            {age_insight}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with tab3:
+                    st.markdown('<p class="section-header">District Count Delta</p>', unsafe_allow_html=True)
+                    
+                    delta = metrics['post_districts'] - metrics['pre_districts']
+                    delta_color = "#22c55e" if delta >= 0 else "#dc2626"
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.markdown(f"""
+                        <div class="glass-card" style="text-align: center; padding: 2rem;">
+                            <p style="color: #6c757d; font-size: 0.85rem; margin-bottom: 0.5rem;">PRE-SHOCK</p>
+                            <p style="font-size: 2.5rem; font-weight: 700; color: #6c757d; margin: 0;">{metrics['pre_districts']}</p>
+                            <p style="color: #6c757d; margin-top: 0.5rem;">Active Districts</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with col2:
+                        st.markdown(f"""
+                        <div style="display: flex; align-items: center; justify-content: center; height: 150px;">
+                            <div style="
+                                font-size: 2rem;
+                                font-weight: 700;
+                                color: {delta_color};
+                                background: {delta_color}15;
+                                border-radius: 50%;
+                                width: 80px;
+                                height: 80px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">
+                                {'+' if delta >= 0 else ''}{delta}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with col3:
+                        st.markdown(f"""
+                        <div class="glass-card" style="text-align: center; padding: 2rem;">
+                            <p style="color: #22c55e; font-size: 0.85rem; margin-bottom: 0.5rem;">POST-SHOCK</p>
+                            <p style="font-size: 2.5rem; font-weight: 700; color: #22c55e; margin: 0;">{metrics['post_districts']}</p>
+                            <p style="color: #6c757d; margin-top: 0.5rem;">Active Districts</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    # Dynamic inference for District Delta
+                    pre_d = metrics['pre_districts']
+                    post_d = metrics['post_districts']
+                    expansion_rate = metrics['district_expansion']
+                    
+                    if pre_d == 0:
+                        if post_d > 0:
+                            district_insight = f"🆕 <strong>New Geographic Footprint:</strong> Aadhaar biometric usage activated in <strong>{post_d}</strong> districts after the enrollment drive. This represents initial geographic deployment in this region."
+                            district_color = "#3b82f6"
+                        else:
+                            district_insight = "📊 <strong>No District Activity:</strong> No biometric usage was recorded before or after this period in the selected region."
+                            district_color = "#6c757d"
+                    elif delta > 50:
+                        district_insight = f"🚀 <strong>Major Expansion:</strong> <strong>{delta}</strong> new districts became active (+{expansion_rate:.0f}%). The policy drive successfully extended Aadhaar infrastructure to underserved areas. This represents significant structural progress."
+                        district_color = "#22c55e"
+                    elif delta > 0:
+                        district_insight = f"📈 <strong>Gradual Expansion:</strong> <strong>{delta}</strong> additional districts activated (+{expansion_rate:.0f}%). The policy is driving incremental geographic growth. Consider targeted campaigns in remaining unserved districts."
+                        district_color = "#3b82f6"
+                    elif delta == 0:
+                        district_insight = f"📊 <strong>Stable Coverage:</strong> District coverage remained at <strong>{post_d}</strong> districts. While no new areas were reached, existing coverage has been maintained."
+                        district_color = "#6c757d"
+                    else:
+                        district_insight = f"⚠️ <strong>Coverage Contraction:</strong> <strong>{abs(delta)}</strong> districts became inactive ({expansion_rate:.0f}%). Investigate potential infrastructure or operational issues in these areas."
+                        district_color = "#dc2626"
+                    
+                    st.markdown(f"""
+                    <div style="
+                        background: linear-gradient(135deg, {district_color}10 0%, {district_color}20 100%);
+                        border-left: 4px solid {district_color};
+                        border-radius: 8px;
+                        padding: 1rem 1.25rem;
+                        margin-top: 1rem;
+                    ">
+                        <p style="margin: 0; color: #1a1a2e; font-size: 0.9rem; line-height: 1.5;">
+                            {district_insight}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Interpretation Panel
+                st.markdown('<div class="gradient-divider"></div>', unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    border-left: 4px solid {metrics['classification_color']};
+                    border-radius: 8px;
+                    padding: 1.5rem;
+                    margin-top: 1rem;
+                ">
+                    <p style="font-size: 1rem; font-weight: 600; color: #1a1a2e; margin: 0 0 0.75rem 0;">
+                        📋 Policy Impact Interpretation
+                    </p>
+                    <p style="font-size: 0.95rem; color: #495057; margin: 0; line-height: 1.6;">
+                        {metrics['interpretation']}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
 
 # ================================================================================
 # FOOTER
