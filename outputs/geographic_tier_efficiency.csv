@@ -1,0 +1,4 @@
+tier,total_enrolment,enrol_0_5,enrol_5_17,enrol_18_plus,total_biometric,num_centers_proxy,num_days,avg_daily_per_center,biometric_to_enrolment_ratio,cost_per_verification,utilization,theoretical_capacity
+Tier-1,285697,195505,77983,12209,3544470,851,86,3.9,12.4064,0.2571,0.039,100
+Tier-2,415007,272409,131340,11258,5494093,1950,87,2.45,13.2386,0.2362,0.0245,100
+Tier-3,4630957,3006393,1481569,142995,59222439,17686,92,2.85,12.7884,0.243,0.0285,100

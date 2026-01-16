@@ -1,0 +1,10 @@
+metric,value
+demo_start_date,2025-03-01
+bio_start_date,2025-03-01
+deployment_lag_days,0
+max_backlog,0.0
+max_backlog_date,2025-03-01
+end_backlog,0.0
+end_bio_to_demo_ratio,1.9266
+total_demo_cum,36597390
+total_bio_cum,70507221.0
