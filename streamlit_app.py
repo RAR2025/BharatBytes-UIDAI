@@ -804,20 +804,36 @@ elif page == "Detailed Analysis":
             top_state_pct = top_state_enrol / total_enrolments * 100
             
             # Dynamic insight about geographic concentration
-            top_3_pct = state_totals.head(3)['Enrolments'].sum() / total_enrolments * 100
-            
-            if top_3_pct > 50:
-                insight_class = "insight-card-warning"
-                insight_title = "High Geographic Concentration"
-                insight_text = f"Top 3 states ({', '.join(state_totals.head(3)['State'].tolist())}) account for {top_3_pct:.1f}% of all enrolments. Consider expanding infrastructure in underserved regions."
-                badge = "ACTION NEEDED"
-                badge_class = "badge-warning"
+            # Handle case when filtering to few states
+            if total_states == 1:
+                # Single state selected - show different insight
+                insight_class = "insight-card"
+                insight_title = "Single State View"
+                insight_text = f"Viewing data for <strong>{top_state}</strong> only. Total enrolments: {total_enrolments/1e6:.2f}M across {state_totals.iloc[0]['Districts']} districts."
+                badge = "FILTERED"
+                badge_class = "badge-primary"
+            elif total_states <= 3:
+                # 2-3 states selected
+                insight_class = "insight-card"
+                insight_title = "Limited State Selection"
+                insight_text = f"Viewing {total_states} states: {', '.join(state_totals['State'].tolist())}. Total enrolments: {total_enrolments/1e6:.2f}M."
+                badge = "FILTERED"
+                badge_class = "badge-primary"
             else:
-                insight_class = "insight-card-success"
-                insight_title = "Balanced Distribution"
-                insight_text = f"Enrolments are relatively well-distributed. Top 3 states account for {top_3_pct:.1f}% of total volume."
-                badge = "HEALTHY"
-                badge_class = "badge-success"
+                # Normal case - 4+ states
+                top_3_pct = state_totals.head(3)['Enrolments'].sum() / total_enrolments * 100
+                if top_3_pct > 50:
+                    insight_class = "insight-card-warning"
+                    insight_title = "High Geographic Concentration"
+                    insight_text = f"Top 3 states ({', '.join(state_totals.head(3)['State'].tolist())}) account for {top_3_pct:.1f}% of all enrolments. Consider expanding infrastructure in underserved regions."
+                    badge = "ACTION NEEDED"
+                    badge_class = "badge-warning"
+                else:
+                    insight_class = "insight-card-success"
+                    insight_title = "Balanced Distribution"
+                    insight_text = f"Enrolments are relatively well-distributed. Top 3 states account for {top_3_pct:.1f}% of total volume."
+                    badge = "HEALTHY"
+                    badge_class = "badge-success"
             
             st.markdown(f"""
             <div class="insight-card {insight_class}">
@@ -1259,29 +1275,32 @@ elif page == "EUMI Analysis":
     
     show_filter_indicator()
     
-    # Load and compute EUMI data
-    @st.cache_data(ttl=3600)
-    def compute_eumi_data():
+    # Compute EUMI data using filtered dataframes (no caching to ensure filter works)
+    def compute_eumi_data(enrol_df, bio_df):
         """Compute EUMI from enrollment and biometric datasets"""
         try:
+            if enrol_df.empty:
+                return None
+                
             # Aggregate enrollment at district level
-            df_enrol_agg = df_enrol.groupby('district').agg({
+            df_enrol_agg = enrol_df.groupby('district').agg({
                 'total_enrolment': 'sum',
                 'state': 'first'
             }).reset_index()
             
             # Aggregate biometric at district level
-            df_bio_agg = df_bio.groupby('district').agg({
+            df_bio_agg = bio_df.groupby('district').agg({
                 'total_bio': 'sum',
                 'state': 'first'
-            }).reset_index() if not df_bio.empty else pd.DataFrame()
+            }).reset_index() if not bio_df.empty else pd.DataFrame()
             
             if df_bio_agg.empty:
-                st.warning("⚠️ Biometric data not available. Cannot compute EUMI.")
+                st.warning("Biometric data not available for selected filter. Cannot compute EUMI.")
                 return None
             
             # Merge datasets on district
             merged_df = pd.merge(df_enrol_agg, df_bio_agg[['district', 'total_bio']], on='district', how='outer')
+            merged_df['state'] = merged_df['state'].fillna(df_enrol_agg['state'].iloc[0] if not df_enrol_agg.empty else 'Unknown')
             merged_df['total_enrolment'] = merged_df['total_enrolment'].fillna(0)
             merged_df['total_bio'] = merged_df['total_bio'].fillna(0)
             
@@ -1313,7 +1332,8 @@ elif page == "EUMI Analysis":
             st.error(f"Error computing EUMI: {str(e)}")
             return None
     
-    eumi_data = compute_eumi_data()
+    # Pass the filtered dataframes to compute EUMI
+    eumi_data = compute_eumi_data(df_enrol, df_bio)
     
     if eumi_data is not None and not eumi_data.empty:
         # Modern KPI Cards with Professional Styling
