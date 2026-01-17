@@ -17,6 +17,32 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ================================================================================
+# STATE AND UNION TERRITORY DEFINITIONS
+# ================================================================================
+
+STATES_LIST = {
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+    'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+    'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+    'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+    'Uttar Pradesh', 'Uttarakhand', 'West Bengal'
+}
+
+UNION_TERRITORIES_LIST = {
+    'Andaman & Nicobar Islands', 'Chandigarh', 'Dadra & Nagar Haveli and Daman & Diu',
+    'Delhi', 'Jammu & Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+}
+
+def classify_region(region):
+    """Classify a region as State or Union Territory"""
+    if region in STATES_LIST:
+        return 'State'
+    elif region in UNION_TERRITORIES_LIST:
+        return 'Union Territory'
+    return 'Unknown'
+
+# ================================================================================
 # PAGE CONFIGURATION
 # ================================================================================
 st.set_page_config(
@@ -92,14 +118,27 @@ st.markdown("""
         backdrop-filter: blur(10px);
         border-radius: 16px;
         border: 1px solid rgba(37, 99, 235, 0.2);
-        padding: 1.25rem;
+        padding: 1.5rem;
         text-align: center;
         transition: all 0.3s ease;
+        min-height: 160px;
+        height: 160px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
     }
     
     .kpi-card:hover {
         transform: scale(1.02);
         box-shadow: 0 8px 25px rgba(37, 99, 235, 0.15);
+    }
+    
+    /* Ensure KPI container columns are equal */
+    [data-testid="column"]:has(> .kpi-card) {
+        flex: 1;
     }
     
     .kpi-value {
@@ -657,7 +696,12 @@ elif page == "Executive Summary":
     
     if not df_enrol.empty:
         total_enrol = df_enrol['total_enrolment'].sum()
-        total_states = df_enrol['state'].nunique()
+        
+        # Count states and union territories separately
+        all_regions = df_enrol['state'].unique()
+        states_count = sum(1 for region in all_regions if region in STATES_LIST)
+        uts_count = sum(1 for region in all_regions if region in UNION_TERRITORIES_LIST)
+        
         total_districts = df_enrol['district'].nunique()
         avg_daily = df_enrol.groupby('date')['total_enrolment'].sum().mean()
         
@@ -675,8 +719,8 @@ elif page == "Executive Summary":
         with col2:
             st.markdown(f"""
             <div class="kpi-card">
-                <p class="kpi-label">States Covered</p>
-                <p class="kpi-value">{total_states}</p>
+                <p class="kpi-label">States & Union Territories</p>
+                <p class="kpi-value">{states_count}+{uts_count}</p>
                 <p class="kpi-delta">↗ Coverage</p>
             </div>
             """, unsafe_allow_html=True)

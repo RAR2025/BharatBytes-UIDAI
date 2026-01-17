@@ -102,6 +102,22 @@ GEOGRAPHIC_NAME_MAPPING = {
     'madhya pradesh': 'Madhya Pradesh',
     'andhra pradesh': 'Andhra Pradesh',
     'arunachal pradesh': 'Arunachal Pradesh',
+    
+    # Duplicate state names
+    'tamilnadu': 'Tamil Nadu',
+    'chhatisgarh': 'Chhattisgarh',
+}
+
+# Invalid state entries (districts, cities, or junk data mistakenly marked as states)
+INVALID_STATES = {
+    '100000',  # Pincode
+    'Balanagar',  # District in Telangana
+    'Darbhanga',  # District in Bihar
+    'Jaipur',  # District in Rajasthan (capital city)
+    'Madanapalle',  # Town in Andhra Pradesh
+    'Nagpur',  # District in Maharashtra
+    'Puttenahalli',  # Locality in Bangalore
+    'Raja Annamalai Puram',  # Locality in Chennai
 }
 
 # ============================================================================
@@ -141,16 +157,30 @@ def normalize_geographic_text(text):
 def validate_and_correct_state(state_name):
     """
     Validate state name and return corrected version
+    Filters out invalid entries (districts, pincodes, etc.)
     """
     if pd.isna(state_name) or state_name == '':
         return ''
     
     state_name = str(state_name).strip()
+    
+    # Check if it's a known invalid entry (district, city, or junk data)
+    if state_name in INVALID_STATES:
+        return ''  # Return empty string to filter out
+    
+    # Check if it's a numeric value (likely a pincode)
+    if state_name.isdigit():
+        return ''
+    
     normalized = normalize_geographic_text(state_name)
     
     # Check if normalized state is in official states
     if normalized in OFFICIAL_STATES:
         return normalized
+    
+    # If not in official states, check if it's an invalid entry
+    if normalized in INVALID_STATES:
+        return ''
     
     # Return title case version as fallback
     return normalized.title()
@@ -231,9 +261,16 @@ def load_and_consolidate_dataset(folder_path, file_pattern, dataset_name):
             validate_and_correct_state
         )
         
+        # Remove rows with empty state names (invalid entries)
+        rows_before = len(consolidated_df)
+        consolidated_df = consolidated_df[consolidated_df[state_column] != '']
+        rows_after = len(consolidated_df)
+        rows_removed = rows_before - rows_after
+        
         unique_states_after = consolidated_df[state_column].nunique()
         print(f" ✓")
         print(f"   Unique states after normalization: {unique_states_after}")
+        print(f"   Rows removed (invalid states): {rows_removed:,}")
         
         # Show state distribution
         print(f"\n   State Distribution:")
