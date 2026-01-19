@@ -68,10 +68,37 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Sidebar */
+    /* Sidebar - Always expanded */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
         border-right: 1px solid #dee2e6;
+        display: block !important;
+        visibility: visible !important;
+        width: 300px !important;
+        min-width: 300px !important;
+        transform: translateX(0) !important;
+    }
+    
+    [data-testid="stSidebar"][aria-expanded="false"] {
+        display: block !important;
+        visibility: visible !important;
+        width: 300px !important;
+        min-width: 300px !important;
+        transform: translateX(0) !important;
+        margin-left: 0 !important;
+    }
+    
+    /* Hide sidebar toggle button */
+    button[kind="header"] {
+        display: none !important;
+    }
+    
+    [data-testid="stSidebarHeader"] {
+        display: none !important;
+    }
+    
+    [data-testid="collapsedControl"] {
+        display: none !important;
     }
     
     /* Main Title */
@@ -435,7 +462,16 @@ all_states = sorted(df_enrol['state'].unique().tolist()) if not df_enrol.empty e
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; padding: 1rem 0 1.5rem 0;">
-        <span style="font-size: 3rem;">🇮🇳</span>
+        <div style="width: 60px; height: 40px; margin: 0 auto 0.5rem auto; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="60" height="40">
+                <rect fill="#FF9933" width="900" height="200"/>
+                <rect fill="#FFFFFF" y="200" width="900" height="200"/>
+                <rect fill="#138808" y="400" width="900" height="200"/>
+                <circle fill="#000080" cx="450" cy="300" r="60"/>
+                <circle fill="#FFFFFF" cx="450" cy="300" r="52"/>
+                <circle fill="#000080" cx="450" cy="300" r="16"/>
+            </svg>
+        </div>
         <h2 style="color: #1a1a2e; margin: 0.5rem 0 0.25rem 0; font-weight: 700; font-size: 1.3rem;">UIDAI Analytics</h2>
         <p style="color: #2563eb; font-size: 0.8rem; margin: 0;">Data Hackathon 2026</p>
     </div>
