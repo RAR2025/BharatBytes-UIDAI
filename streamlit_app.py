@@ -47,7 +47,7 @@ def classify_region(region):
 # ================================================================================
 st.set_page_config(
     page_title="UIDAI Aadhaar Analytics Platform",
-    page_icon="🇮🇳",
+    page_icon="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -68,37 +68,20 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Sidebar - Always expanded */
+    /* Make sidebar permanent - hide collapse button */
+    [data-testid="collapsedControl"] {display: none !important;}
+    button[kind="header"] {display: none !important;}
+    [data-testid="stSidebarCollapseButton"] {display: none !important;}
+    .css-1rs6os {display: none !important;}
+    .css-17ziqus {display: none !important;}
+    section[data-testid="stSidebar"] {width: 280px !important; min-width: 280px !important;}
+    section[data-testid="stSidebar"] > div {width: 280px !important;}
+    section[data-testid="stSidebar"][aria-expanded="false"] {display: block !important; width: 280px !important; min-width: 280px !important; margin-left: 0 !important;}
+    
+    /* Sidebar */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
         border-right: 1px solid #dee2e6;
-        display: block !important;
-        visibility: visible !important;
-        width: 300px !important;
-        min-width: 300px !important;
-        transform: translateX(0) !important;
-    }
-    
-    [data-testid="stSidebar"][aria-expanded="false"] {
-        display: block !important;
-        visibility: visible !important;
-        width: 300px !important;
-        min-width: 300px !important;
-        transform: translateX(0) !important;
-        margin-left: 0 !important;
-    }
-    
-    /* Hide sidebar toggle button */
-    button[kind="header"] {
-        display: none !important;
-    }
-    
-    [data-testid="stSidebarHeader"] {
-        display: none !important;
-    }
-    
-    [data-testid="collapsedControl"] {
-        display: none !important;
     }
     
     /* Main Title */
@@ -462,17 +445,27 @@ all_states = sorted(df_enrol['state'].unique().tolist()) if not df_enrol.empty e
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; padding: 1rem 0 1.5rem 0;">
-        <div style="width: 60px; height: 40px; margin: 0 auto 0.5rem auto; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="60" height="40">
-                <rect fill="#FF9933" width="900" height="200"/>
-                <rect fill="#FFFFFF" y="200" width="900" height="200"/>
-                <rect fill="#138808" y="400" width="900" height="200"/>
-                <circle fill="#000080" cx="450" cy="300" r="60"/>
-                <circle fill="#FFFFFF" cx="450" cy="300" r="52"/>
-                <circle fill="#000080" cx="450" cy="300" r="16"/>
-            </svg>
+        <div style="width: 72px; height: 48px; margin: 0 auto; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+            <div style="height: 33.33%; background: #FF9933;"></div>
+            <div style="height: 33.33%; background: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+                <svg width="16" height="16" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="#000080" stroke-width="1.5"/>
+                    <circle cx="12" cy="12" r="2" fill="#000080"/>
+                    <g stroke="#000080" stroke-width="0.8">
+                        <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+                        <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+                        <line x1="4.9" y1="4.9" x2="7.8" y2="7.8"/><line x1="16.2" y1="16.2" x2="19.1" y2="19.1"/>
+                        <line x1="4.9" y1="19.1" x2="7.8" y2="16.2"/><line x1="16.2" y1="7.8" x2="19.1" y2="4.9"/>
+                        <line x1="7.5" y1="2.5" x2="9" y2="6.5"/><line x1="15" y1="17.5" x2="16.5" y2="21.5"/>
+                        <line x1="2.5" y1="16.5" x2="6.5" y2="15"/><line x1="17.5" y1="9" x2="21.5" y2="7.5"/>
+                        <line x1="2.5" y1="7.5" x2="6.5" y2="9"/><line x1="17.5" y1="15" x2="21.5" y2="16.5"/>
+                        <line x1="7.5" y1="21.5" x2="9" y2="17.5"/><line x1="15" y1="6.5" x2="16.5" y2="2.5"/>
+                    </g>
+                </svg>
+            </div>
+            <div style="height: 33.33%; background: #138808;"></div>
         </div>
-        <h2 style="color: #1a1a2e; margin: 0.5rem 0 0.25rem 0; font-weight: 700; font-size: 1.3rem;">UIDAI Analytics</h2>
+        <h2 style="color: #1a1a2e; margin: 0.75rem 0 0.25rem 0; font-weight: 700; font-size: 1.3rem;">Aadhaar Analytics</h2>
         <p style="color: #2563eb; font-size: 0.8rem; margin: 0;">Data Hackathon 2026</p>
     </div>
     """, unsafe_allow_html=True)
@@ -493,7 +486,8 @@ with st.sidebar:
         ("🔮", "Predictive"),
         ("🔍", "Data Explorer"),
         ("⚖️", "EUMI Analysis"),
-        ("📉", "Policy Shock Analyzer")
+        ("📉", "Policy Shock Analyzer"),
+        ("🌐", "Digital Infrastructure Readiness")
     ]
     
     for icon, name in nav_items:
@@ -591,17 +585,9 @@ if page == "Overview":
         <h1 style="font-size: 2.75rem; font-weight: 800; margin: 0 0 0.5rem 0; letter-spacing: -1px;">
             Aadhaar Analytics Platform
         </h1>
-        <p style="font-size: 1.1rem; margin: 0 0 1.5rem 0; opacity: 0.9;">
+        <p style="font-size: 1.1rem; margin: 0; opacity: 0.9;">
             Turning Aadhaar Data Into Actionable Intelligence for India
         </p>
-        <div style="
-            display: inline-block;
-            background: rgba(255,255,255,0.15);
-            border-radius: 30px;
-            padding: 0.5rem 1.5rem;
-        ">
-            <span style="font-size: 1rem; font-weight: 600;">Built by Team Bharat Bytes 🇮🇳</span>
-        </div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -681,6 +667,16 @@ if page == "Overview":
             </p>
         </div>
         """, unsafe_allow_html=True)
+        
+    # Digital Infrastructure Readiness - Centered
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid #0ea5e9; max-width: 600px; margin-left: auto; margin-right: auto;">
+        <h3 style="color: #0c4a6e; margin: 0 0 0.5rem 0; text-align: center;">🌐 Digital Infrastructure Readiness</h3>
+        <p style="color: #0369a1; margin: 0; font-size: 0.9rem; text-align: center;">
+            Analyze infrastructure stress, reporting consistency, and age balance across districts.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
     st.markdown("---")
     
@@ -2521,6 +2517,197 @@ elif page == "Policy Shock Analyzer":
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
+
+# ================================================================================
+# PAGE: DIGITAL INFRASTRUCTURE READINESS (PS-3)
+# ================================================================================
+
+elif page == "Digital Infrastructure Readiness":
+    st.markdown("""
+    <h1 class="main-title">🌐 Digital Infrastructure Readiness</h1>
+    <p class="sub-title">Infrastructure vs Ground Reality Analysis</p>
+    """, unsafe_allow_html=True)
+    
+    show_filter_indicator()
+    
+    # Explanation
+    st.markdown("""
+    <div class="insight-card">
+        <p class="insight-title">📊 About This Analysis</p>
+        <p class="insight-text">
+            This module analyzes the gap between reported digital infrastructure capabilities and actual 
+            ground-level biometric transaction patterns. Three indices are computed for each district:
+            <br><br>
+            <strong>• ISI (Infrastructure Stress Index):</strong> Measures capacity load and volatility (0-1, higher = more stress)<br>
+            <strong>• RCS (Reporting Consistency Score):</strong> Measures data reporting regularity (0-1, higher = more consistent)<br>
+            <strong>• ABS (Age Balance Score):</strong> Measures equitable usage across age groups (0-1, higher = more balanced)
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<div class="gradient-divider"></div>', unsafe_allow_html=True)
+    
+    # Load PS-3 output files
+    indices_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs", "digital_infrastructure_indices.csv")
+    typology_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs", "digital_infrastructure_typology.csv")
+    
+    if not os.path.exists(indices_file) or not os.path.exists(typology_file):
+        st.warning("⚠️ PS-3 output files not found. Please run `python digital_infrastructure_readiness.py` first.")
+    else:
+        # Load data
+        df_indices = pd.read_csv(indices_file)
+        df_typology = pd.read_csv(typology_file)
+        
+        # Apply state filter if selected
+        if selected_states:
+            df_indices = df_indices[df_indices['state'].isin(selected_states)]
+            df_typology = df_typology[df_typology['state'].isin(selected_states)]
+        
+        # Summary KPIs
+        st.markdown('<p class="section-header">📈 Index Summary</p>', unsafe_allow_html=True)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.markdown(f"""
+            <div class="kpi-card">
+                <p class="kpi-label">Total Districts</p>
+                <p class="kpi-value">{len(df_indices)}</p>
+                <p class="kpi-delta">Analyzed</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            avg_isi = df_indices['ISI'].mean()
+            st.markdown(f"""
+            <div class="kpi-card">
+                <p class="kpi-label">Avg Stress Index</p>
+                <p class="kpi-value">{avg_isi:.2f}</p>
+                <p class="kpi-delta">ISI</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            avg_rcs = df_indices['RCS'].mean()
+            st.markdown(f"""
+            <div class="kpi-card">
+                <p class="kpi-label">Avg Consistency</p>
+                <p class="kpi-value">{avg_rcs:.2f}</p>
+                <p class="kpi-delta">RCS</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col4:
+            avg_abs = df_indices['ABS'].mean()
+            st.markdown(f"""
+            <div class="kpi-card">
+                <p class="kpi-label">Avg Age Balance</p>
+                <p class="kpi-value">{avg_abs:.2f}</p>
+                <p class="kpi-delta">ABS</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown('<div class="gradient-divider"></div>', unsafe_allow_html=True)
+        
+        # Indices Table
+        st.markdown('<p class="section-header">📋 District-Level Indices</p>', unsafe_allow_html=True)
+        
+        display_cols = ['state', 'district', 'ISI', 'RCS', 'ABS']
+        df_display = df_indices[display_cols].sort_values('ISI', ascending=False)
+        
+        st.dataframe(df_display, use_container_width=True, hide_index=True)
+        
+        st.markdown('<div class="gradient-divider"></div>', unsafe_allow_html=True)
+        
+        # Bar Chart - Top 20 by ISI
+        st.markdown('<p class="section-header">📊 Infrastructure Stress Index Visualization</p>', unsafe_allow_html=True)
+        
+        top_20_isi = df_indices.nlargest(20, 'ISI')
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            x=top_20_isi['district'],
+            y=top_20_isi['ISI'],
+            marker=dict(
+                color=top_20_isi['ISI'],
+                colorscale='Reds',
+                showscale=True,
+                colorbar=dict(title="ISI")
+            ),
+            hovertemplate='<b>%{x}</b><br>ISI: %{y:.4f}<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            height=400,
+            margin=dict(l=20, r=20, t=40, b=100),
+            xaxis=dict(
+                title='District',
+                tickangle=-45,
+                showgrid=False
+            ),
+            yaxis=dict(
+                title='Infrastructure Stress Index (ISI)',
+                showgrid=True,
+                gridcolor='rgba(0,0,0,0.05)',
+                range=[0, 1]
+            )
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        st.markdown("""
+        <div class="insight-card insight-card-warning">
+            <p class="insight-title">🔍 Interpretation</p>
+            <p class="insight-text">
+                Districts with high ISI values experience infrastructure stress — high transaction volumes 
+                combined with temporal volatility. These areas may benefit from capacity upgrades and 
+                load balancing interventions.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown('<div class="gradient-divider"></div>', unsafe_allow_html=True)
+        
+        # Typology Classification
+        st.markdown('<p class="section-header">🏷️ District Typology Classification</p>', unsafe_allow_html=True)
+        
+        # Typology counts
+        typology_counts = df_typology['typology'].value_counts().reset_index()
+        typology_counts.columns = ['Typology', 'Count']
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**📊 Category Counts**")
+            st.dataframe(
+                typology_counts,
+                use_container_width=True,
+                hide_index=True
+            )
+        
+        with col2:
+            st.markdown("**📖 Typology Definitions**")
+            st.success("**Digitally Strong & Balanced** — Low stress, high consistency, equitable usage")
+            st.warning("**Digitally Strong but Overburdened** — Infrastructure exists but under pressure")
+            st.info("**Digitally Weak but Stable** — Limited activity but stable when operational")
+            st.error("**Digitally Underserved** — Poor infrastructure and inequitable service delivery")
+        
+        # Full typology table
+        st.markdown('<p class="section-header">📋 Complete District Classification</p>', unsafe_allow_html=True)
+        
+        st.dataframe(
+            df_typology.sort_values(['typology', 'state', 'district']),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "state": st.column_config.TextColumn("State", width="medium"),
+                "district": st.column_config.TextColumn("District", width="medium"),
+                "typology": st.column_config.TextColumn("Classification", width="large")
+            }
+        )
 
 # ================================================================================
 # FOOTER
